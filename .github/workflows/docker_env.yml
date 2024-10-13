@@ -1,0 +1,26 @@
+name: Build and Push Docker Image for person_detection_env
+
+on:
+  push:
+    paths:
+      - 'person_detection_env/**'
+  pull_request:
+    paths:
+      - 'person_detection_env/**'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@v3
+
+    - name: Log in to GitHub Container Registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Build Docker image
+      run: docker build -t ghcr.io/${{ github.repository_owner }}/person_detection_env:latest ./person_detection_env
+
+    - name: Push Docker image to GitHub Packages
+      run: docker push ghcr.io/${{ github.repository_owner }}/person_detection_env:latest
