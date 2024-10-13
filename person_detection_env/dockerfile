@@ -1,0 +1,17 @@
+# Use Python 3.10 base image
+FROM python:3.10-slim AS environment
+
+# Install system dependencies for PyTorch
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Install PyTorch, YOLOv5
+RUN pip install --upgrade pip && \
+    pip install torch torchvision torchaudio
+
+# Load YOLOv5 model
+RUN python -c "import torch; torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)"
+
+# Set work directory
+WORKDIR /env
+
+CMD ["bash"]
