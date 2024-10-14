@@ -21,7 +21,7 @@ RUN pip install --upgrade pip
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # Install OpenCV for image handling and additional libraries
-RUN pip install opencv-python pandas matplotlib pillow scipy pyyaml tqdm
+RUN pip install opencv-python requests pandas matplotlib pillow scipy pyyaml tqdm
 
 # Run a command to download the YOLOv5 model and initialize it
 RUN python -c "import torch; torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, trust_repo=True)"
