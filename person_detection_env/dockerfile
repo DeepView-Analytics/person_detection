@@ -1,22 +1,30 @@
-# Use Python 3.10 base image
+# Use a slim Python 3.10 image as the base
 FROM python:3.10-slim AS environment
 
-# Install system dependencies for PyTorch and OpenCV
+# Install system dependencies needed for PyTorch, OpenCV, and general utilities
 RUN apt-get update && apt-get install -y \
     git \
     libgl1-mesa-glx \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    pip install opencv-python
-
-# Load YOLOv5 model
-RUN python -c "import torch; torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, trust_repo=True)"
-
-# Set work directory
+# Set the working directory
 WORKDIR /env
 
+# Copy the requirements file to the working directory (if exists)
+# ADD your-requirements.txt /env/requirements.txt  # Uncomment if you have a requirements file to install
+
+# Install Python dependencies using pip
+RUN pip install --upgrade pip
+
+# Install PyTorch and torchvision (CPU version)
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Install OpenCV for image handling and additional libraries
+RUN pip install opencv-python pandas matplotlib pillow scipy pyyaml tqdm
+
+# Run a command to download the YOLOv5 model and initialize it
+RUN python -c "import torch; torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, trust_repo=True)"
+
+# Default command to start the container (can be modified as needed)
 CMD ["bash"]
