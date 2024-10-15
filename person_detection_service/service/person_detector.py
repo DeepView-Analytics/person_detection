@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../kafka_interaction')))
 
-from schemas import Frame, ObjectDetected
+from kafka_interaction.schemas import Frame, ObjectDetected
 
 class PersonDetector:
     def __init__(self):
