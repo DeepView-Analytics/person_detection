@@ -7,7 +7,6 @@ from io import BytesIO
 from typing import List, Dict
 import numpy as np
 import cv2
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../kafka_interaction')))
 
 from kafka_interaction.schemas import Frame, ObjectDetected
 

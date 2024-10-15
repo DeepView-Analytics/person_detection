@@ -3,7 +3,7 @@ from kafka import KafkaConsumer
 from .serializers import deserialize
 
 from service.person_detector import PersonDetector
-from kafka_producer import KafkaProducerService
+from .kafka_producer import KafkaProducerService
 
 class KafkaConsumerService:
     def __init__(self, bootstrap_servers='192.168.111.131:9092', topic='person_detection_requests'):
@@ -27,6 +27,7 @@ class KafkaConsumerService:
                 print("there is a message")
                 request = message.value  # request is already deserialized to DetectionRequest
                 detections = self.detector.detect_persons(request.frames) #return list of ObjectDetected object
+                print("done_with model")
                 self.producer.send_detection_response(request.request_id, detections)
         except Exception as e:
          print(f"Error: {e}")

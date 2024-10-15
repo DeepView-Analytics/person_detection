@@ -1,7 +1,7 @@
 import logging
 from kafka import KafkaProducer
-from serializers import serialize
-from schemas import DetectionResponse
+from .serializers import serialize
+from .schemas import DetectionResponse, ObjectDetected
 
 
 
@@ -15,7 +15,6 @@ class KafkaProducerService:
 
     def send_detection_response(self, request_id, detections):
         response_message = DetectionResponse(request_id=request_id, detection=detections)
-        
         # Serialize the message using your serialize() function
         serialized_message = serialize(response_message)  # This returns a JSON string
         
@@ -31,13 +30,13 @@ class KafkaProducerService:
 
         print("Attempting to send message to topic")
         try:
-            future = self.producer.send(self.topic, serialized_message_bytes)  # Sending bytes
+            future = self.producer.send(self.topic, serialized_message_bytes)  
             record_metadata = future.get(timeout=10)
             print(f"Message sent successfully to topic {record_metadata.topic} partition {record_metadata.partition} at offset {record_metadata.offset}")
         except Exception as e:
             logging.error(f"Failed to send message: {e}", exc_info=True)
         finally:
-            self.producer.flush()  # Ensure the message is sent
+            self.producer.flush() 
 
     def close(self):
         self.producer.flush()

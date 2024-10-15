@@ -1,10 +1,7 @@
 import base64
 import json
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../kafka_interaction')))
 
-from schemas import DetectionRequest, DetectionResponse
+from kafka_interaction.schemas import DetectionRequest, DetectionResponse
 
 def serialize(request: DetectionResponse) -> str:
     """Serialize a DetectionResponse object to a JSON string for Kafka."""
