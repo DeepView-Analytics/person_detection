@@ -1,0 +1,15 @@
+# Ignore the .env file to keep it out of the Docker image
+.env
+.gitignore
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+
+# Ignore virtual environments
+venv/
+
+
+# Ignore other files or directories not needed in the Docker image
+*.md
+*.log
+.vscode

@@ -1,76 +1,84 @@
 import base64
 import os
-import sys
+import time
+import cv2
 import json
-from unittest import TestCase
-import unittest
-from unittest.mock import MagicMock, patch
+from typing import List
+from kafka import KafkaConsumer, KafkaProducer
+from pydantic import BaseModel
 
-# Ensure the path to your project modules is set correctly
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../kafka_interaction')))
-from kafka_interaction.kafka_producer import KafkaProducerService
-from kafka_interaction.kafka_consumer import KafkaConsumerService
-from schemas import ObjectDetected  # Ensure this import matches your project structure
+# Kafka settings
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', '192.168.111.131:9092')
+KAFKA_TOPIC_REQUESTS = os.getenv('KAFKA_TOPIC_REQUESTS', 'person_detection_requests')
 
-class TestKafkaConsumerService(TestCase):
+# Define Frame and DetectionRequest models
+class Frame(BaseModel):
+    camera_id: int
+    frame: str  # Use `str` since Base64 encoding produces a string
 
-    @patch('kafka_interaction.kafka_producer.KafkaProducerService')  # Mock the KafkaProducerService
-    @patch('kafka_interaction.kafka_consumer.KafkaConsumer')  # Mock the KafkaConsumer
-    def test_consume_messages(self, mock_kafka_consumer, mock_kafka_producer):
-        # Arrange
-        frame_1 = base64.b64encode(bytes([14, 70, 54])).decode('utf-8')
-        frame_2 = base64.b64encode(bytes([12, 100, 85])).decode('utf-8')
-        mock_message = json.dumps({
-            "request_id": 1,
-            "frames": [
-                {
-                    "camera_id": 1,
-                    "frame": frame_1
-                },
-                {
-                    "camera_id": 2,
-                    "frame": frame_2 
-                }
-            ]
-        })
+class DetectionRequest(BaseModel):
+    request_id: int
+    frames: List[Frame]
 
-        # Set the return value for the mock Kafka consumer to simulate message consumption
-        mock_kafka_consumer.return_value.__iter__.return_value = iter([mock_message])
+# Kafka Producer Setup
+producer = KafkaProducer(
+    bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+    value_serializer=lambda v: json.dumps(v).encode('utf-8'),  # Serialize to JSON and encode to bytes
+    max_request_size=10485760 
+)
+
+def load_images_as_bytes(image_paths):
+    frames = []
+    for idx, image_path in enumerate(image_paths):
+        # Read the image using OpenCV
+        image = cv2.imread(image_path)
         
-        # Mock the behavior of your object detector (assuming you have a PersonDetector class)
-        mock_detector = MagicMock()
-        mock_detector.detect_persons.return_value = [
-            ObjectDetected(camera_id=1, object_detected=[20, 56, 1210, 1600, 0.8972072005271912]),
-            ObjectDetected(camera_id=2, object_detected=[61, 401, 500, 857, 0.4654568135738373]),
-            ObjectDetected(camera_id=2, object_detected=[453, 56, 625, 313, 0.9238410592079163]),
-            ObjectDetected(camera_id=2, object_detected=[127, 47, 294, 319, 0.9159606695175171]),
-            ObjectDetected(camera_id=2, object_detected=[321, 49, 484, 313, 0.9154051542282104])
-        ]
-
-
-        # Act
-        mock_kafka_consumer.consume_messages()  # This method should handle the mocked message
-
-        # Assert
-        # Ensure that the producer sends a response with the detections
-        mock_kafka_producer.return_value.send.assert_called_once()
+        if image is None:
+            print(f"Failed to read image: {image_path}")
+            continue
         
-        # Extract the sent message and verify its contents
-        sent_request_id, sent_detections = mock_kafka_producer.return_value.send.call_args[0][1]
-        self.assertEqual(sent_request_id, 1)
-        self.assertEqual(len(sent_detections), 5)  # Check number of detections
+        # Encode image to PNG format as bytes
+        success, encoded_image = cv2.imencode('.png', image)
         
-        # Verify the content of detections
-        self.assertEqual(sent_detections[0].camera_id, 1)
-        self.assertEqual(sent_detections[0].object_detected, [20, 56, 1210, 1600, 0.8972072005271912])
-        self.assertEqual(sent_detections[1].camera_id, 2)
-        self.assertEqual(sent_detections[1].object_detected, [61, 401, 500, 857, 0.4654568135738373])
-        self.assertEqual(sent_detections[2].camera_id, 2)
-        self.assertEqual(sent_detections[2].object_detected, [453, 56, 625, 313, 0.9238410592079163])
-        self.assertEqual(sent_detections[3].camera_id, 2)
-        self.assertEqual(sent_detections[3].object_detected, [127, 47, 294, 319, 0.9159606695175171])
-        self.assertEqual(sent_detections[4].camera_id, 2)
-        self.assertEqual(sent_detections[4].object_detected, [321, 49, 484, 313, 0.9154051542282104])
+        if success:
+            # Convert image bytes to Base64 string
+            encoded_image_str = base64.b64encode(encoded_image.tobytes()).decode('utf-8')
+            frame = Frame(camera_id=idx, frame=encoded_image_str)
+            frames.append(frame)
+        else:
+            print(f"Failed to encode image: {image_path}")
+    return frames
+
+def produce_detection_request(image_paths):
+    # Load images and convert to frames
+    frames = load_images_as_bytes(image_paths)
+    
+    # Create DetectionRequest object
+    detection_request = DetectionRequest(
+        request_id=1,  # You can generate or increment request IDs as needed
+        frames=frames
+    )
+    
+    # Send to Kafka, using Pydantic's .model_dump() to convert the object to a dictionary
+    future = producer.send(KAFKA_TOPIC_REQUESTS, detection_request.model_dump())
+    try:
+        record_metadata = future.get(timeout=10)  # Wait for a response (timeout in seconds)
+        print(f"Message sent successfully to topic {record_metadata.topic} partition {record_metadata.partition} at offset {record_metadata.offset}")
+    except Exception as e:
+        print(f"Failed to send message: {e}")
+    producer.flush()
+    print(f"Detection request with {len(frames)} frames sent to Kafka topic {KAFKA_TOPIC_REQUESTS}")
 
 if __name__ == '__main__':
-    unittest.main()
+    # Test with 5 images (provide the paths of 5 images here)
+    image_paths = [
+        '1.jpg',
+        '2.jpg',
+        '3.jpg',
+        '4.png',
+        '5.jpg'
+    ]
+
+    # Produce detection request
+    produce_detection_request(image_paths)
+    

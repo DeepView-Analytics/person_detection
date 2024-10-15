@@ -1,12 +1,18 @@
+
 import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from kafka_interaction.kafka_consumer import KafkaConsumerService
 from kafka_interaction.kafka_producer import KafkaProducerService
 import uvicorn
 from contextlib import asynccontextmanager
 
+load_dotenv()
+
+
+
 # Kafka configuration
-KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', '192.168.111.129:9092')
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', '192.168.111.131:9092')
 KAFKA_TOPIC_REQUESTS = os.getenv('KAFKA_TOPIC_REQUESTS', 'person_detection_requests')
 KAFKA_TOPIC_RESPONSES = os.getenv('KAFKA_TOPIC_RESPONSES', 'person_detected_responses')  
 

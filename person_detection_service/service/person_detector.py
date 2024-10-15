@@ -101,7 +101,7 @@ class PersonDetector:
         Returns:
             A list of ObjectDetected instances mapping camera_id to detected objects.
         """
-        print(f"len of frams in service : {len(frames)}")
+    
         for frame in frames:
            print(type(frame))
         
@@ -111,7 +111,7 @@ class PersonDetector:
         
         # Run the model on the batch of frames
         detections = self.detect_persons_model_interaction(frame_data)  #detections is a list of list of bboxs ( person detected in the frame)
-        print(f"len detection = {len(detections)}")
+
         # Map detections back to their respective camera IDs
         results = []
         for idx, frame in enumerate(frames):
@@ -119,5 +119,5 @@ class PersonDetector:
             camera_id = frame.camera_id
             # Assume detections[idx] holds the detections for the corresponding frame
             results.append(ObjectDetected(camera_id=camera_id, object_detected=detections[idx]))
-        
+
         return results
