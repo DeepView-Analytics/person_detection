@@ -10,7 +10,8 @@ class KafkaConsumerService:
         self.consumer = KafkaConsumer(
             topic,
             bootstrap_servers=bootstrap_servers,
-            value_deserializer=lambda x: deserialize(x.decode('utf-8')) 
+            api_version = (7,3,2),
+            value_deserializer=lambda x: deserialize(x.decode('utf-8'))
         )
         self.detector = PersonDetector()
         self.running = True

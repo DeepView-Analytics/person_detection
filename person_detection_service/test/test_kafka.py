@@ -4,9 +4,12 @@ import time
 import cv2
 import json
 from typing import List
+
+from dotenv import load_dotenv
 from kafka import KafkaConsumer, KafkaProducer
 from pydantic import BaseModel
-
+load_dotenv()
+print(os.getenv('KAFKA_BOOTSTRAP_SERVERS', '192.168.111.131:9092'))
 # Kafka settings
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', '192.168.111.131:9092')
 KAFKA_TOPIC_REQUESTS = os.getenv('KAFKA_TOPIC_REQUESTS', 'person_detection_requests')
@@ -24,7 +27,8 @@ class DetectionRequest(BaseModel):
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
     value_serializer=lambda v: json.dumps(v).encode('utf-8'),  # Serialize to JSON and encode to bytes
-    max_request_size=10485760 
+    api_version = (7,3,2),
+    max_request_size=10485760
 )
 
 def load_images_as_bytes(image_paths):

@@ -6,10 +6,12 @@ from .schemas import DetectionResponse, ObjectDetected
 
 
 class KafkaProducerService:
-    def __init__(self, bootstrap_servers='192.168.111.131:9092', topic='person_detection_responses'):
+    def __init__(self, bootstrap_servers='127.0.0.1:9092', topic='person_detection_response'):
         self.producer = KafkaProducer(
             bootstrap_servers=bootstrap_servers,
-            value_serializer=lambda v: v.encode('utf-8') if isinstance(v, str) else v  # Ensure it's bytes
+            api_version = (7,3,2),
+            value_serializer=lambda v: v.encode('utf-8') if isinstance(v, str) else v ,  # Ensure it's bytes
+            max_request_size=10485760
         )
         self.topic = topic
 
